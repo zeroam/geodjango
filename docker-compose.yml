@@ -1,0 +1,44 @@
+version: '2.1'
+
+volumes:
+  geodjango_db: {}
+
+services:
+  db:
+    image: mdillon/postgis:10
+    volumes:
+      - geodjango_db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=geodjango
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1q2w3e
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U postgres"
+      interval: 3s
+      timeout: 1s
+      retries: 10
+
+  geodjango:
+    build:
+      context: .
+      dockerfile: ./compose/Dockerfile
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_DB_HOST=db
+      - DJANGO_DB_PORT=5432
+      - DJANGO_DB_NAME=geodjango
+      - DJANGO_DB_USERNAME=postgres
+      - DJANGO_DB_PASSWORD=1q2w3e
+      - DJANGO_SECRET_KEY=dev_secret_key
+    ports:
+     - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    links:
+      - db
+    command: /start.sh
+    volumes:
+     - ./geodjango:/app/geodjango
+     - ./world:/app/world
